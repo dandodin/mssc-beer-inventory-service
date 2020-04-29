@@ -23,21 +23,17 @@ public class AllocationListener {
     @JmsListener(destination = JmsConfig.ALLOCATE_ORDER_QUEUE)
     public void listen(AllocateOrderRequest allocateOrderRequest) {
         log.info(String.format("Received allocate request for id[%s]",
-            allocateOrderRequest.getBeerOrder().getId()));
+            allocateOrderRequest.getBeerOrderDto().getId()));
 
         AllocateOrderResponse allocateOrderResponse = new AllocateOrderResponse();
-        allocateOrderResponse.setBeerOrder(allocateOrderRequest.getBeerOrder());
+        allocateOrderResponse.setBeerOrderDto(allocateOrderRequest.getBeerOrderDto());
         try {
-            Boolean allocated = allocationService.allocateOrder(allocateOrderRequest.getBeerOrder());
-            if (allocated) {
-                allocateOrderResponse.setPendingInventory(false);
-            } else {
-                allocateOrderResponse.setPendingInventory(true);
-            }
+            Boolean allocated = allocationService.allocateOrder(allocateOrderRequest.getBeerOrderDto());
+            allocateOrderResponse.setPendingInventory(!allocated);
         } catch (Exception e) {
             log.error("problem allocating beer order", e);
             allocateOrderResponse.setAllocationError(true);
         }
-        jmsTemplate.convertAndSend(JmsConfig.ALLOCATE_ORDER_RESULT_QUEUE, allocateOrderResponse);
+        jmsTemplate.convertAndSend(JmsConfig.ALLOCATE_ORDER_RESPONSE_QUEUE, allocateOrderResponse);
     }
 }
